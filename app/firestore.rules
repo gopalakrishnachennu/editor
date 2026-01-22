@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Admin settings - only admins can write
+    match /admin/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own document (whether it exists or not)
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can create their own document (first-time registration)
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can update their own document (except protected fields)
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tier', 'isBanned']);
+      
+      // Only admins can delete users or modify protected fields
+      allow delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Admins can read/write ALL user documents (for user management)
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Posts collection
+    match /posts/{postId} {
+      // Users can read their own posts
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Users can create posts for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Users can update/delete their own posts
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Admins can read/write all posts
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Templates collection
+    match /templates/{templateId} {
+      // Anyone authenticated can read public templates
+      allow read: if request.auth != null && resource.data.isPublic == true;
+      // Users can read their own templates
+      allow read: if request.auth != null && resource.data.createdBy == request.auth.uid;
+      // Users can create templates for themselves
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      // Users can update/delete their own templates
+      allow update, delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+      // Admins can read/write all templates
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Brand kits collection
+    match /brandKits/{kitId} {
+      // Users can read their own brand kits
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Users can create brand kits for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Users can update/delete their own brand kits
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Batch jobs collection
+    match /batchJobs/{jobId} {
+      // Users can read their own jobs
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Users can create jobs for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Only system can update jobs (via Cloud Functions)
+      allow update: if false;
+    }
+    
+    // Logs collection - for error tracking
+    match /logs/{logId} {
+      // Anyone authenticated can write logs
+      allow create: if request.auth != null;
+      // Only admins can read and manage logs
+      allow read, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
