@@ -35,3 +35,6 @@ yarn-error.log*
 
 # Editor directories
 app/_git_old/
+
+# Logs
+app/Logs/
