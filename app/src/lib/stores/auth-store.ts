@@ -116,7 +116,7 @@ export const useAuthStore = create<AuthStore>()(
                     const result = await signInWithEmailAndPassword(auth, email, password);
                     const user = await createUserDocument(result.user);
                     setLogUser(user.id, user.email);
-                    ultraLogger.setUserId(user.id); // Track user in ultra-detailed logs
+                    ultraLogger.setUserId(user.id, user.email); // Track user in ultra-detailed logs
                     set({ user, firebaseUser: result.user });
                     loginTimer.end({ userId: user.id });
                     logger.info('auth', 'Sign in successful', { userId: user.id });
@@ -139,7 +139,7 @@ export const useAuthStore = create<AuthStore>()(
                     const result = await createUserWithEmailAndPassword(auth, email, password);
                     const user = await createUserDocument(result.user, { displayName });
                     setLogUser(user.id, user.email);
-                    ultraLogger.setUserId(user.id); // Track user in ultra-detailed logs
+                    ultraLogger.setUserId(user.id, user.email); // Track user in ultra-detailed logs
                     set({ user, firebaseUser: result.user });
                     signupTimer.end({ userId: user.id });
                     logger.info('auth', 'Sign up successful', { userId: user.id });

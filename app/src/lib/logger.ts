@@ -231,6 +231,7 @@ export const logger = {
                     ...details,
                     duration,
                 });
+                return duration;
             },
         };
     },

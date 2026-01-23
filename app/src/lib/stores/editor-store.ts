@@ -338,10 +338,26 @@ export const useEditorStore = create<EditorStore>()(
             // CRUD operations
             savePost: async (post) => {
                 const saveTimer = logger.time('editor-store', 'Save Post');
+
+                // DEBUG: Trace exact payload
+                console.log('%c[DEBUG] savePost CALL:', 'color: #f0f; font-weight: bold;', {
+                    payloadId: post.id,
+                    payloadUserId: post.userId,
+                    payloadTitle: post.title,
+                    isCanvasPresent: !!get().canvasJson,
+                    canvasLength: get().canvasJson?.length
+                });
+
+                if (!post.userId) {
+                    console.error('[CRITICAL] Parsing savePost: Missing User ID', post);
+                    throw new Error("User ID is missing. Cannot save post.");
+                }
+
                 logger.info('editor-store', 'Saving post', {
                     postId: post.id,
                     isNew: !post.id,
-                    hasTitle: !!post.title
+                    hasTitle: !!post.title,
+                    userId: post.userId
                 });
 
                 set({ isSaving: true, error: null });
@@ -356,6 +372,16 @@ export const useEditorStore = create<EditorStore>()(
                         canvasState: get().canvasJson,
                         updatedAt: serverTimestamp(),
                     };
+
+                    // CRITICAL FIX: Remove undefined values (Firestore rejects them)
+                    Object.keys(firestoreData).forEach(key => {
+                        if (firestoreData[key] === undefined) {
+                            delete firestoreData[key];
+                        }
+                    });
+
+                    // DEBUG: Trace Firestore Data
+                    console.log('[DEBUG] Firestore Write Payload:', firestoreData);
 
                     if (!post.id) {
                         firestoreData.createdAt = serverTimestamp();

@@ -16,6 +16,7 @@ interface LogEntry {
     message: string;
     context: Record<string, any>;
     userId?: string;
+    userEmail?: string;
     sessionId: string;
     url: string;
     userAgent: string;
@@ -26,6 +27,7 @@ class UltraDetailedLogger {
     private readonly bufferSize = 50; // Flush after 50 entries
     private sessionId: string;
     private userId?: string;
+    private userEmail?: string;
     private flushInterval: NodeJS.Timeout | null = null;
 
     constructor() {
@@ -38,14 +40,16 @@ class UltraDetailedLogger {
         return `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     }
 
-    setUserId(userId: string) {
+    setUserId(userId: string, email?: string) {
         this.userId = userId;
-        this.log('system', 'User context set for logging', { userId });
+        this.userEmail = email;
+        this.log('system', 'User context set for logging', { userId, email });
     }
 
     clearUserId() {
         this.log('system', 'User context cleared from logging', { userId: this.userId });
         this.userId = undefined;
+        this.userEmail = undefined;
     }
 
     private setupGlobalListeners() {
@@ -239,6 +243,7 @@ class UltraDetailedLogger {
             message,
             context,
             userId: this.userId,
+            userEmail: this.userEmail,
             sessionId: this.sessionId,
             url: window.location.href,
             userAgent: navigator.userAgent

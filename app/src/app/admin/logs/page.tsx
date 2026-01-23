@@ -20,28 +20,69 @@ export default function AdminLogsPage() {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [typeFilter, setTypeFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [userFilter, setUserFilter] = useState('');
+
+    // User Filter State
+    const [selectedUserFilter, setSelectedUserFilter] = useState<{ id: string, email: string } | null>(null);
+    const [userSearchQuery, setUserSearchQuery] = useState('');
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [usersMap, setUsersMap] = useState<Record<string, { email: string, name: string }>>({});
+    const [userList, setUserList] = useState<{ id: string, email: string, name: string }[]>([]);
+
     const [isLoading, setIsLoading] = useState(false);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-    // Load available log files
+    // Initialize: Load logs and users
     useEffect(() => {
-        const loadAvailableDates = async () => {
-            try {
-                const response = await fetch('/api/logs/read', { method: 'OPTIONS' });
-                const data = await response.json();
-                if (data.files && Array.isArray(data.files)) {
-                    const dates = data.files.map((f: string) => f.replace('.jsonl', ''));
-                    setAvailableDates(dates);
-                }
-            } catch (error) {
-                console.error('Failed to load available log dates:', error);
-            }
-        };
         loadAvailableDates();
+        loadUsers();
     }, []);
+
+    const loadAvailableDates = async () => {
+        try {
+            const response = await fetch('/api/logs/read', { method: 'OPTIONS' });
+            const data = await response.json();
+            if (data.files && Array.isArray(data.files)) {
+                const dates = data.files.map((f: string) => f.replace('.jsonl', ''));
+                setAvailableDates(dates);
+            }
+        } catch (error) {
+            console.error('Failed to load available log dates:', error);
+        }
+    };
+
+    const loadUsers = async () => {
+        try {
+            // We'll fetch users from the Firestore 'users' collection directly via client SDK
+            // Note: In a real protected admin route, this is fine. 
+            // Alternatively, create a dedicated API endpoint /api/admin/users/list
+            const { collection, getDocs } = await import('firebase/firestore');
+            const { db } = await import('@/lib/firebase');
+
+            const usersRef = collection(db, 'users');
+            const snapshot = await getDocs(usersRef);
+
+            const map: Record<string, { email: string, name: string }> = {};
+            const list: { id: string, email: string, name: string }[] = [];
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const user = {
+                    id: doc.id,
+                    email: data.email || 'No Email',
+                    name: data.displayName || 'No Name'
+                };
+                map[doc.id] = { email: user.email, name: user.name };
+                list.push(user);
+            });
+
+            setUsersMap(map);
+            setUserList(list);
+        } catch (error) {
+            console.error('Failed to load users for mapping:', error);
+        }
+    };
 
     // Load logs for selected date
     const loadLogs = async () => {
@@ -88,15 +129,23 @@ export default function AdminLogsPage() {
             const matchesType = log.type.toLowerCase().includes(query);
             const matchesContext = JSON.stringify(log.context).toLowerCase().includes(query);
             const matchesUser = log.userId?.toLowerCase().includes(query);
+            const matchesEmail = log.userId && usersMap[log.userId]?.email.toLowerCase().includes(query);
 
-            if (!matchesMessage && !matchesType && !matchesContext && !matchesUser) return false;
+            if (!matchesMessage && !matchesType && !matchesContext && !matchesUser && !matchesEmail) return false;
         }
 
         // User filter
-        if (userFilter && log.userId !== userFilter) return false;
+        if (selectedUserFilter && log.userId !== selectedUserFilter.id) return false;
 
         return true;
     }).reverse(); // Show newest first
+
+    // Derived user search list
+    const filteredUserList = userList.filter(u =>
+        u.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        u.id.includes(userSearchQuery)
+    );
 
     // Export logs
     const exportLogs = (format: 'json' | 'csv') => {
@@ -109,13 +158,14 @@ export default function AdminLogsPage() {
             a.click();
         } else {
             // CSV export
-            const headers = ['Timestamp', 'Type', 'Message', 'User ID', 'Session ID', 'URL'];
+            const headers = ['Timestamp', 'Type', 'Message', 'User Email', 'User ID', 'Session ID', 'URL'];
             const csvData = [
                 headers.join(','),
                 ...filteredLogs.map(log => [
                     new Date(log.timestamp).toISOString(),
                     log.type,
                     `"${log.message.replace(/"/g, '""')}"`,
+                    log.userId ? (usersMap[log.userId]?.email || log.userId) : 'N/A',
                     log.userId || 'N/A',
                     log.sessionId,
                     log.url
@@ -147,9 +197,6 @@ export default function AdminLogsPage() {
         setTimeout(() => setCopiedIndex(null), 2000);
     };
 
-    // Get unique users
-    const uniqueUsers = Array.from(new Set(logs.map(l => l.userId).filter(Boolean)));
-
     // Get log type styling
     const getTypeStyle = (type: string) => {
         if (type.includes('error')) return { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' };
@@ -160,7 +207,7 @@ export default function AdminLogsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50 p-6 md:p-8">
+        <div className="min-h-screen bg-gray-50/50 p-6 md:p-8" onClick={() => setShowUserDropdown(false)}>
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -182,8 +229,8 @@ export default function AdminLogsPage() {
                         <button
                             onClick={() => setAutoRefresh(!autoRefresh)}
                             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${autoRefresh
-                                    ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                                    : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
                                 }`}
                         >
                             <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
@@ -238,24 +285,73 @@ export default function AdminLogsPage() {
                             </select>
                         </div>
 
-                        {/* User Selection */}
-                        <div className="space-y-1.5">
+                        {/* Searchable User Filter */}
+                        <div className="space-y-1.5 relative">
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                                 <User className="w-3.5 h-3.5" />
                                 User
                             </label>
-                            <select
-                                value={userFilter}
-                                onChange={(e) => setUserFilter(e.target.value)}
-                                className="block w-full rounded-lg border-gray-200 bg-gray-50/50 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            <div
+                                className="relative"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowUserDropdown(!showUserDropdown);
+                                }}
                             >
-                                <option value="">All Users</option>
-                                {uniqueUsers.map(userId => (
-                                    <option key={userId} value={userId!}>
-                                        {userId?.substring(0, 8)}...
-                                    </option>
-                                ))}
-                            </select>
+                                <div className="block w-full rounded-lg border border-gray-200 bg-gray-50/50 text-sm px-3 py-2 cursor-pointer focus:ring-2 focus:ring-indigo-500 flex justify-between items-center">
+                                    <span className={selectedUserFilter ? 'text-gray-900' : 'text-gray-500'}>
+                                        {selectedUserFilter ? selectedUserFilter.email : 'All Users'}
+                                    </span>
+                                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                                </div>
+
+                                {showUserDropdown && (
+                                    <div
+                                        className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-hidden flex flex-col"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="p-2 border-b border-gray-100">
+                                            <input
+                                                type="text"
+                                                placeholder="Search users..."
+                                                value={userSearchQuery}
+                                                onChange={(e) => setUserSearchQuery(e.target.value)}
+                                                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <div className="overflow-y-auto flex-1">
+                                            <div
+                                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 ${!selectedUserFilter ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}
+                                                onClick={() => {
+                                                    setSelectedUserFilter(null);
+                                                    setShowUserDropdown(false);
+                                                }}
+                                            >
+                                                All Users
+                                            </div>
+                                            {filteredUserList.map(user => (
+                                                <div
+                                                    key={user.id}
+                                                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 border-t border-gray-50 ${selectedUserFilter?.id === user.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}
+                                                    onClick={() => {
+                                                        setSelectedUserFilter(user);
+                                                        setShowUserDropdown(false);
+                                                    }}
+                                                >
+                                                    <div className="font-medium truncate">{user.name}</div>
+                                                    <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                                                </div>
+                                            ))}
+                                            {filteredUserList.length === 0 && (
+                                                <div className="px-3 py-4 text-xs text-gray-400 text-center">
+                                                    No users found
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Search */}
@@ -318,6 +414,11 @@ export default function AdminLogsPage() {
                                 const Icon = style.icon;
                                 const isExpanded = expandedLogs.has(index);
 
+                                // Enhanced User Info Resolution
+                                const userData = log.userId ? usersMap[log.userId] : null;
+                                const userDisplayName = userData ? userData.email : (log.context?.userEmail || (log.userId ? `${log.userId.substring(0, 8)}...` : 'N/A'));
+                                const userTooltip = userData ? `${userData.name} (${userData.email})\nID: ${log.userId}` : (log.userId || 'No User ID');
+
                                 return (
                                     <div
                                         key={index}
@@ -345,9 +446,12 @@ export default function AdminLogsPage() {
                                                             {log.type}
                                                         </span>
                                                         {log.userId && (
-                                                            <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                                                            <span
+                                                                className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 max-w-[200px] truncate"
+                                                                title={userTooltip}
+                                                            >
                                                                 <User className="w-3 h-3" />
-                                                                {log.userId.substring(0, 8)}...
+                                                                {userDisplayName}
                                                             </span>
                                                         )}
                                                         <span className="text-xs text-gray-400 font-mono ml-auto">

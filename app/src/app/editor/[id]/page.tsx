@@ -272,6 +272,13 @@ interface CanvasElement {
             aspectRatio?: string;
         };
     };
+    // Placeholder support for templates
+    isPlaceholder?: boolean;
+    placeholderType?: 'text' | 'image' | 'logo';
+    // Smart Layouts - Anchoring
+    relativeTo?: string; // ID of element to anchor to
+    anchor?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
+    autoScale?: boolean;
 }
 
 // Design Template interface
@@ -373,6 +380,38 @@ export default function EditorPage() {
             });
         }
     }, [params?.id, loadPost]);
+
+    // Handle Smart Generator handoff - load pre-built canvas state (SINGLE SOURCE OF TRUTH)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handoffData = localStorage.getItem('smart_gen_handoff');
+        if (!handoffData) return;
+
+        try {
+            const handoff = JSON.parse(handoffData);
+            localStorage.removeItem('smart_gen_handoff');
+
+            // Load the EXACT canvas state from Smart Generator preview
+            if (handoff.canvasState) {
+                const { elements, background, frame } = handoff.canvasState;
+
+                if (elements && Array.isArray(elements)) {
+                    setElements(elements);
+                }
+
+                if (background?.color) {
+                    setBackgroundColor(background.color);
+                }
+
+                if (frame) {
+                    setSelectedFrame(frame);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load Smart Generator handoff:', e);
+        }
+    }, []);
 
     // Sync state from store
     useEffect(() => {
@@ -1585,8 +1624,7 @@ export default function EditorPage() {
             reader.onload = (event) => {
                 const imageUrl = event.target?.result as string;
                 updateElement(elementId, {
-                    imageUrl,
-                    isPlaceholder: false
+                    imageUrl
                 });
             };
             reader.readAsDataURL(file);
@@ -1899,15 +1937,26 @@ export default function EditorPage() {
                 // alert(`Thumbnail Error: ${thumbError.message}`);
             }
 
-            await savePost({
+            if (!user?.id) {
+                console.error('[CRITICAL] SAVE ABORTED: User ID missing in EditorPage');
+                // alert('Error: You appear to be logged out. Please refresh the page.');
+                return;
+            }
+
+            const savedPostId = await savePost({
                 id: currentPost?.id,
                 title: elements.find(e => e.type === 'text')?.text?.slice(0, 20) || currentPost?.title || 'Untitled Design',
                 status: scheduleOptions?.status || currentPost?.status || 'draft',
-                scheduledAt: scheduleOptions?.scheduledAt || currentPost?.scheduledAt || null,
+                scheduledAt: scheduleOptions?.scheduledAt || currentPost?.scheduledAt || undefined,
                 platform: platform,
-                userId: user?.id,
+                userId: user.id, // Explicitly pass verified user.id
                 images: { thumbnail: thumbnail } // Pass the generated thumbnail
             });
+
+            // Update URL if this was a new post (so refresh works)
+            if (!currentPost?.id && savedPostId) {
+                window.history.replaceState(null, '', `/editor/${savedPostId}`);
+            }
 
             // Confirm Save completed
             // alert("DEBUG: Save Successful! Check Posts page.");
@@ -1915,7 +1964,14 @@ export default function EditorPage() {
             logger.info('editor', isExiting ? 'Auto-saved on exit' : 'Manual save completed');
 
             if (isExiting) {
-                window.location.href = "/dashboard";
+                // Check if we came from Smart Generator
+                const returnUrl = localStorage.getItem('smart_gen_return');
+                if (returnUrl) {
+                    localStorage.removeItem('smart_gen_return');
+                    window.location.href = returnUrl;
+                } else {
+                    window.location.href = "/dashboard";
+                }
             } else {
                 // Show a quick success state if needed
                 setIsSavingAuto(false);
@@ -1941,7 +1997,9 @@ export default function EditorPage() {
                 <header className="h-12 bg-[#252525] border-b border-[#3a3a3a] flex items-center justify-between px-4 flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => saveDesign(true)}
+                            onClick={() => {
+                                saveDesign(true);
+                            }}
                             className="p-1.5 hover:bg-[#3a3a3a] rounded-lg text-gray-400 hover:text-white"
                         >
                             <ArrowLeft className="w-5 h-5" />

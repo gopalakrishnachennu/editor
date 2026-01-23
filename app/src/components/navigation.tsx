@@ -26,11 +26,13 @@ import {
     Shield,
     FileText,
     Film,
+    Wand2,
 } from "lucide-react";
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Create Post", href: "/editor/new", icon: Plus },
+    { name: "Smart Generator", href: "/smart-generator", icon: Wand2 },
     { name: "Video Editor", href: "/video-editor", icon: Film },
     { name: "My Posts", href: "/posts", icon: FolderOpen },
     { name: "Brand Kits", href: "/brand-kits", icon: Sparkles },

@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuthStore, useEditorStore, useAdminStore } from "@/lib/stores";
 import { FeatureGate } from "@/components/guards";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import {
     Plus,
     FileText,
@@ -16,6 +17,7 @@ import {
     Zap,
     Image,
     BarChart3,
+    Wand2,
 } from "lucide-react";
 
 const quickActions = [
@@ -54,6 +56,7 @@ export default function DashboardPage() {
     const { user } = useAuthStore();
     const { recentPosts, syncUserStats } = useEditorStore();
     const { settings } = useAdminStore();
+
 
     useEffect(() => {
         if (user?.id) {
@@ -99,6 +102,37 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </div>
+            </motion.div>
+
+            {/* Magic Create Banner */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-1 shadow-lg cursor-pointer group"
+            >
+                <Link href="/smart-generator" className="block relative bg-white/10 backdrop-blur-sm rounded-xl p-6 flex items-center justify-between hover:bg-white/15 transition border border-white/10">
+                    <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-20 -z-10" />
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition duration-500">
+                            <Wand2 className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h2 className="text-xl font-bold text-white">Magic Generator</h2>
+                                <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-900 text-xs font-bold uppercase tracking-wide">
+                                    New
+                                </span>
+                            </div>
+                            <p className="text-indigo-100 max-w-md">
+                                Drop your images and text, and let our AI design the perfect post for you instantly.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="hidden md:flex items-center gap-2 bg-white text-indigo-600 px-5 py-2.5 rounded-lg font-semibold shadow-lg group-hover:scale-105 transition">
+                        Start Creating <ArrowRight className="w-4 h-4" />
+                    </div>
+                </Link>
             </motion.div>
 
             {/* Quick Actions */}
@@ -191,6 +225,8 @@ export default function DashboardPage() {
                     </div>
                 </section>
             </FeatureGate>
+
+
         </div>
     );
 }

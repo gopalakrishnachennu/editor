@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+// Force Rebuild 4.0
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Link as LinkIcon, FileText, Loader2, Play } from 'lucide-react';
 import { ultraLogger } from '@/lib/ultra-logger';

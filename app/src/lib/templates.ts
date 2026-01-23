@@ -89,6 +89,7 @@ export interface TemplateConfig {
     platforms?: PlatformVariant[];
     description: string;
     category: 'news' | 'quote' | 'story' | 'announcement' | 'interview';
+    tags?: string[]; // Smart Generator Tags
     thumbnail: string;  // Now required - path to preview image
     isPro: boolean;
     layout: {
@@ -120,6 +121,7 @@ export const templates: TemplateConfig[] = [
         name: 'Quote Post Dark',
         description: 'Person photo with inspiring quote overlay',
         category: 'quote',
+        tags: ['quote', 'minimal', 'dark', 'single-person'],
         thumbnail: '/templates/quote-dark.png',
         isPro: false,
         layout: {
@@ -160,6 +162,7 @@ export const templates: TemplateConfig[] = [
         name: 'Breaking News',
         description: 'Bold headlines with highlighted keywords',
         category: 'news',
+        tags: ['news', 'headline-focus', 'dark', 'breaking'],
         thumbnail: '/templates/news-breaking.png',
         isPro: false,
         layout: {
@@ -199,6 +202,7 @@ export const templates: TemplateConfig[] = [
         name: 'Interview Split',
         description: 'Two people side by side with colorful gradient',
         category: 'interview',
+        tags: ['comparison', 'multi-person', 'split', 'interview', 'light'],
         thumbnail: '/templates/interview-split.png',
         isPro: true,
         layout: {
@@ -239,6 +243,7 @@ export const templates: TemplateConfig[] = [
         name: 'Story with Person',
         description: 'Main image with circular inset photo',
         category: 'story',
+        tags: ['story', 'inset', 'clean', 'light', 'social'],
         thumbnail: '/templates/story-inset.png',
         isPro: false,
         layout: {
@@ -277,6 +282,7 @@ export const templates: TemplateConfig[] = [
         name: 'Text Card',
         description: 'Bold text top and bottom with image in middle',
         category: 'news',
+        tags: ['text-heavy', 'bold', 'social', 'inset'],
         thumbnail: '/templates/story-inset-alt.png',
         isPro: true,
         layout: {
@@ -315,6 +321,7 @@ export const templates: TemplateConfig[] = [
         name: 'Finance News',
         description: 'Professional news with statistics highlight',
         category: 'news',
+        tags: ['news', 'finance', 'professional', 'light', 'stats'],
         thumbnail: '/templates/finance-news.png',
         isPro: true,
         layout: {
@@ -354,6 +361,7 @@ export const templates: TemplateConfig[] = [
         name: 'Tech Dramatic',
         description: 'Dramatic imagery with bold overlaid text',
         category: 'news',
+        tags: ['tech', 'dramatic', 'overlay', 'dark'],
         thumbnail: '/templates/tech-dramatic.png',
         isPro: true,
         layout: {
@@ -392,6 +400,7 @@ export const templates: TemplateConfig[] = [
         name: 'Simple News',
         description: 'Clean layout with subtle gradient',
         category: 'news',
+        tags: ['news', 'simple', 'gradient', 'minimal'],
         thumbnail: '/templates/news-breaking.png',
         isPro: false,
         layout: {
