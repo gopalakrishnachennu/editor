@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+:root {
+  --font-outfit: "Outfit", sans-serif;
+}
+
+body {
+  font-family: var(--font-outfit);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Glass morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animations */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Canvas styles */
+.canvas-container {
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+
+/* --- Advanced Video Effects --- */
+
+/* 1. Glitch Effect */
+@keyframes glitch-anim-1 {
+  0% {
+    clip-path: inset(20% 0 80% 0);
+    transform: translate(calc(-1 * var(--glitch-intensity, 2px)), 1px);
+  }
+
+  20% {
+    clip-path: inset(60% 0 10% 0);
+    transform: translate(var(--glitch-intensity, 2px), -1px);
+  }
+
+  40% {
+    clip-path: inset(40% 0 50% 0);
+    transform: translate(calc(-1 * var(--glitch-intensity, 2px)), 2px);
+  }
+
+  60% {
+    clip-path: inset(80% 0 5% 0);
+    transform: translate(var(--glitch-intensity, 2px), -2px);
+  }
+
+  80% {
+    clip-path: inset(10% 0 60% 0);
+    transform: translate(calc(-0.5 * var(--glitch-intensity, 2px)), 2px);
+  }
+
+  100% {
+    clip-path: inset(30% 0 20% 0);
+    transform: translate(calc(0.5 * var(--glitch-intensity, 2px)), -1px);
+  }
+}
+
+@keyframes glitch-anim-2 {
+  0% {
+    clip-path: inset(10% 0 60% 0);
+    transform: translate(var(--glitch-intensity, 2px), -1px);
+  }
+
+  20% {
+    clip-path: inset(80% 0 5% 0);
+    transform: translate(calc(-1 * var(--glitch-intensity, 2px)), 2px);
+  }
+
+  40% {
+    clip-path: inset(30% 0 20% 0);
+    transform: translate(var(--glitch-intensity, 2px), 1px);
+  }
+
+  60% {
+    clip-path: inset(15% 0 80% 0);
+    transform: translate(calc(-0.5 * var(--glitch-intensity, 2px)), -2px);
+  }
+
+  80% {
+    clip-path: inset(55% 0 10% 0);
+    transform: translate(calc(0.5 * var(--glitch-intensity, 2px)), 2px);
+  }
+
+  100% {
+    clip-path: inset(40% 0 30% 0);
+    transform: translate(calc(-1 * var(--glitch-intensity, 2px)), 1px);
+  }
+}
+
+.glitch-effect {
+  position: relative;
+  --glitch-intensity: 2px;
+  /* Default */
+}
+
+.glitch-effect::before,
+.glitch-effect::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  opacity: 0.8;
+}
+
+.glitch-effect::before {
+  left: var(--glitch-intensity, 2px);
+  text-shadow: -1px 0 #ff00c1;
+  clip-path: inset(0 0 0 0);
+  animation: glitch-anim-1 2s infinite linear alternate-reverse;
+}
+
+.glitch-effect::after {
+  left: calc(-1 * var(--glitch-intensity, 2px));
+  text-shadow: -1px 0 #00fff9;
+  clip-path: inset(0 0 0 0);
+  animation: glitch-anim-2 3s infinite linear alternate-reverse;
+}
+
+/* 2. Vignette Overlay */
+.vignette-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.8) 120%);
+  z-index: 10;
+}
+
+/* 3. Pixelate Filter */
+.pixelate-filter {
+  image-rendering: pixelated;
+  /* Works nicely for scaled images */
+}

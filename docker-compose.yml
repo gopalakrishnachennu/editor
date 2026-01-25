@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    # In production, this builds the multi-stage Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: post-designer-app
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+  # Development Service (Overrides Production Image)
+  dev:
+    # We use the same context but target the 'deps' stage or just use node base
+    # Actually simpler to just use a standard node image for dev hot-reloading
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: post-designer-dev
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    command: sh -c "cd /app && npm install && npm run dev"
+    environment:
+      - NODE_ENV=development
